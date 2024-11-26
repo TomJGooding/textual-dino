@@ -2,6 +2,7 @@ from textual import events
 from textual.app import App, ComposeResult, RenderResult
 from textual.containers import Container
 from textual.geometry import Offset
+from textual.reactive import reactive
 from textual.widget import Widget
 
 DINO_SPRITE = """\
@@ -65,6 +66,37 @@ class Desert(Container):
     """
 
 
+class Scoreboard(Widget):
+    DEFAULT_CSS = """
+    Scoreboard {
+        width: auto;
+        height: auto;
+        dock: right;
+        margin-right: 3;
+        text-style: bold;
+    }
+    """
+    score = reactive(0)
+
+    def render(self) -> RenderResult:
+        return f"{self.score:05}"
+
+
+class GameOver(Widget):
+    DEFAULT_CSS = """
+    GameOver {
+        height: auto;
+        dock: top;
+        margin-top: 3;
+        text-align: center;
+        text-style: bold;
+    }
+    """
+
+    def render(self) -> RenderResult:
+        return "GAME OVER"
+
+
 class DinosaurGame(App):
     CSS = """
     Screen {
@@ -80,6 +112,7 @@ class DinosaurGame(App):
 
     def compose(self) -> ComposeResult:
         with Desert():
+            yield Scoreboard()
             yield Dino()
             yield Cactus()
 
@@ -113,13 +146,22 @@ class DinosaurGame(App):
         if self.time % self.cactus_spawn_rate == 0:
             desert.mount(Cactus())
 
-        # Update cacti
+        # Update cacti and check collision
         cacti = self.query(Cactus)
         for cactus in cacti:
-            if cactus.offset.x < 0:
-                cactus.remove()
+            if cactus.region.overlaps(dino.region):
+                self.tick.stop()
+                desert.mount(GameOver())
             else:
-                cactus.offset -= Offset(1, 0)
+                if cactus.offset.x < 0:
+                    cactus.remove()
+                else:
+                    cactus.offset -= Offset(1, 0)
+
+        # Score
+        scoreboard = self.query_one(Scoreboard)
+        if self.time % 3 == 0:
+            scoreboard.score += 1
 
         # Reset key
         self.key = None
