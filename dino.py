@@ -5,6 +5,11 @@ from textual.geometry import Offset
 from textual.reactive import reactive, var
 from textual.widget import Widget
 
+GAME_OVER_BANNER = """\
+█▀▀ █▀█ ███ ██▀    ▄▀█ █ █ ██▀ █▀█
+█▄█ █▀█ █ █ █▄▄    █▄▀ ▀█▀ █▄▄ █▀▄\
+"""
+
 DINO_SPRITE = """\
    █▀██
 █▄ ██▀▀
@@ -117,14 +122,14 @@ class GameOver(Widget):
     GameOver {
         height: auto;
         dock: top;
-        margin-top: 3;
+        margin-top: 4;
         text-align: center;
         text-style: bold;
     }
     """
 
     def render(self) -> RenderResult:
-        return "GAME OVER"
+        return GAME_OVER_BANNER
 
 
 class DinosaurGame(App):
