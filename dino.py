@@ -139,6 +139,8 @@ class DinosaurGame(App):
     }
     """
 
+    ENABLE_COMMAND_PALETTE = False
+
     def __init__(self) -> None:
         super().__init__(ansi_color=True)
         self.game_over = False
