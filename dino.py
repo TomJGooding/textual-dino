@@ -2,7 +2,7 @@ from textual import events
 from textual.app import App, ComposeResult, RenderResult
 from textual.containers import Container
 from textual.geometry import Offset
-from textual.reactive import reactive
+from textual.reactive import reactive, var
 from textual.widget import Widget
 
 DINO_SPRITE = """\
@@ -31,13 +31,29 @@ class Dino(Widget):
     }
     """
 
+    is_jumping = var(False)
+
     def __init__(self) -> None:
         super().__init__()
-        self.is_jumping = False
         self.dy = 0
 
     def render(self) -> RenderResult:
         return DINO_SPRITE
+
+    def update(self) -> None:
+        if self.is_jumping:
+            if self.dy > 0 and self.offset.y == 10:
+                self.is_jumping = False
+            elif self.dy < 0 and self.offset.y == 0:
+                self.dy = 1
+
+            self.offset += Offset(0, self.dy)
+
+    def watch_is_jumping(self) -> None:
+        if self.is_jumping:
+            self.dy = -1
+        else:
+            self.dy = 0
 
 
 class Cactus(Widget):
@@ -53,6 +69,12 @@ class Cactus(Widget):
 
     def render(self) -> RenderResult:
         return CACTUS_SPRITE
+
+    def update(self) -> None:
+        if self.offset.x < 0:
+            self.remove()
+        else:
+            self.offset -= Offset(1, 0)
 
 
 class Desert(Container):
@@ -131,8 +153,8 @@ class DinosaurGame(App):
 
     def on_key(self, event: events.Key) -> None:
         self.key = event.key
-        if self.game_over:
-            self.reset()
+        if self.game_over and self.key in ("up", "space"):
+            self.restart()
 
     def update(self) -> None:
         self.time += 1
@@ -149,16 +171,8 @@ class DinosaurGame(App):
         if self.key in ("up", "space"):
             if not dino.is_jumping:
                 dino.is_jumping = True
-                dino.dy = -1
 
-        if dino.is_jumping:
-            if dino.dy > 0 and dino.offset.y == 10:
-                dino.is_jumping = False
-                dino.dy = 0
-            elif dino.dy < 0 and dino.offset.y == 0:
-                dino.dy = 1
-
-            dino.offset += Offset(0, dino.dy)
+        dino.update()
 
         # Spawn cactus
         desert = self.query_one(Desert)
@@ -174,15 +188,12 @@ class DinosaurGame(App):
                 scoreboard.high_score = self.high_score
                 desert.mount(GameOver())
             else:
-                if cactus.offset.x < 0:
-                    cactus.remove()
-                else:
-                    cactus.offset -= Offset(1, 0)
+                cactus.update()
 
         # Reset key
         self.key = None
 
-    def reset(self) -> None:
+    def restart(self) -> None:
         desert = self.query_one(Desert)
         desert.remove_children()
 
