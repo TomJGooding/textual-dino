@@ -77,9 +77,17 @@ class Scoreboard(Widget):
     }
     """
     score = reactive(0)
+    high_score = reactive(0)
+
+    def __init__(self, high_score: int = 0):
+        super().__init__()
+        self.high_score = high_score
 
     def render(self) -> RenderResult:
-        return f"{self.score:05}"
+        if self.high_score == 0:
+            return f"{self.score:05}"
+        else:
+            return f"HI {self.high_score:05}  {self.score:05}"
 
 
 class GameOver(Widget):
@@ -107,6 +115,7 @@ class DinosaurGame(App):
     def __init__(self) -> None:
         super().__init__(ansi_color=True)
         self.game_over = False
+        self.high_score: int = 0
         self.time: int = 0
         self.cactus_spawn_rate: int = 60
         self.key: str | None = None
@@ -127,6 +136,13 @@ class DinosaurGame(App):
 
     def update(self) -> None:
         self.time += 1
+
+        # Score
+        scoreboard = self.query_one(Scoreboard)
+        if self.time % 3 == 0:
+            scoreboard.score += 1
+            if scoreboard.score > self.high_score:
+                self.high_score = scoreboard.score
 
         # Player controls
         dino = self.query_one(Dino)
@@ -155,17 +171,13 @@ class DinosaurGame(App):
             if cactus.region.overlaps(dino.region):
                 self.tick.pause()
                 self.game_over = True
+                scoreboard.high_score = self.high_score
                 desert.mount(GameOver())
             else:
                 if cactus.offset.x < 0:
                     cactus.remove()
                 else:
                     cactus.offset -= Offset(1, 0)
-
-        # Score
-        scoreboard = self.query_one(Scoreboard)
-        if self.time % 3 == 0:
-            scoreboard.score += 1
 
         # Reset key
         self.key = None
@@ -174,7 +186,7 @@ class DinosaurGame(App):
         desert = self.query_one(Desert)
         desert.remove_children()
 
-        desert.mount(Scoreboard())
+        desert.mount(Scoreboard(self.high_score))
         desert.mount(Dino())
         desert.mount(Cactus())
 
