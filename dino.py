@@ -106,6 +106,7 @@ class DinosaurGame(App):
 
     def __init__(self) -> None:
         super().__init__(ansi_color=True)
+        self.game_over = False
         self.time: int = 0
         self.cactus_spawn_rate: int = 60
         self.key: str | None = None
@@ -121,6 +122,8 @@ class DinosaurGame(App):
 
     def on_key(self, event: events.Key) -> None:
         self.key = event.key
+        if self.game_over:
+            self.reset()
 
     def update(self) -> None:
         self.time += 1
@@ -150,7 +153,8 @@ class DinosaurGame(App):
         cacti = self.query(Cactus)
         for cactus in cacti:
             if cactus.region.overlaps(dino.region):
-                self.tick.stop()
+                self.tick.pause()
+                self.game_over = True
                 desert.mount(GameOver())
             else:
                 if cactus.offset.x < 0:
@@ -165,6 +169,18 @@ class DinosaurGame(App):
 
         # Reset key
         self.key = None
+
+    def reset(self) -> None:
+        desert = self.query_one(Desert)
+        desert.remove_children()
+
+        desert.mount(Scoreboard())
+        desert.mount(Dino())
+        desert.mount(Cactus())
+
+        self.time = 0
+        self.game_over = False
+        self.tick.resume()
 
 
 if __name__ == "__main__":
