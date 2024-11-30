@@ -1,3 +1,5 @@
+import random
+
 from textual import events
 from textual.app import App, ComposeResult, RenderResult
 from textual.containers import Container
@@ -38,12 +40,20 @@ DINO_SPRITES = [
 """,
 ]
 
-CACTUS_SPRITE = """\
+CACTUS_SPRITES = [
+    """\
 ▄ ██ ▄
 █ ██▄█
 ▀▀██  
   ██  \
-"""
+""",
+    """\
+▄ ██ ▄
+█▄██ █
+  ██▀▀
+  ██  \
+""",
+]
 
 
 DinoState = Literal["running", "jumping"]
@@ -111,8 +121,12 @@ class Cactus(Widget):
     }
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.sprite = random.choice(CACTUS_SPRITES)
+
     def render(self) -> RenderResult:
-        return CACTUS_SPRITE
+        return self.sprite
 
     def update(self) -> None:
         if self.offset.x < 0:
@@ -224,6 +238,7 @@ class DinosaurGame(App):
         desert = self.query_one(Desert)
         if self.time % self.cactus_spawn_rate == 0:
             desert.mount(Cactus())
+            self.cactus_spawn_rate = random.choice([30, 60, 90])
 
         # Update cacti and check collision
         cacti = self.query(Cactus)
