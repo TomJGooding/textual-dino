@@ -1,2 +1,3 @@
 # textual-dino
-Dinosaur game built with Textual
+
+Dinosaur game in the terminal built with [Textual](https://github.com/textualize/textual/)
