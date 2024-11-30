@@ -4,18 +4,39 @@ from textual.containers import Container
 from textual.geometry import Offset
 from textual.reactive import reactive, var
 from textual.widget import Widget
+from typing_extensions import Literal
 
 GAME_OVER_BANNER = """\
 █▀▀ █▀█ ███ ██▀    ▄▀█ █ █ ██▀ █▀█
 █▄█ █▀█ █ █ █▄▄    █▄▀ ▀█▀ █▄▄ █▀▄\
 """
 
-DINO_SPRITE = """\
+DINO_SPRITES = [
+    """\
+   █▀██
+█▄ ██▀▀
+▀████▀ 
+  ▀▀█  \
+""",
+    """\
+   █▀██
+█▄ ██▀▀
+▀████▀ 
+  █▀▀▀ \
+""",
+    """\
+   █▀██
+█▄ ██▀▀
+▀████▀ 
+ ▄▀▀▀▀ \
+""",
+    """\
    █▀██
 █▄ ██▀▀
 ▀████▀ 
   █▀█  \
-"""
+""",
+]
 
 CACTUS_SPRITE = """\
 ▄ ██ ▄
@@ -23,6 +44,9 @@ CACTUS_SPRITE = """\
 ▀▀██  
   ██  \
 """
+
+
+DinoState = Literal["running", "jumping"]
 
 
 class Dino(Widget):
@@ -36,26 +60,41 @@ class Dino(Widget):
     }
     """
 
-    is_jumping = var(False)
+    state = var[DinoState]("running")
+    sprite = reactive(DINO_SPRITES[0])
+    animations = {
+        "running": [0, 0, 0, 1, 1, 1],
+        "jumping": [2],
+    }
 
     def __init__(self) -> None:
         super().__init__()
         self.dy = 0
+        self.animation_index = 0
 
     def render(self) -> RenderResult:
-        return DINO_SPRITE
+        return self.sprite
 
     def update(self) -> None:
-        if self.is_jumping:
+        if self.state == "running":
+            self.animation_index = (self.animation_index + 1) % len(
+                self.animations[self.state]
+            )
+            sprite_index = self.animations[self.state][self.animation_index]
+            self.sprite = DINO_SPRITES[sprite_index]
+        elif self.state == "jumping":
             if self.dy > 0 and self.offset.y == 10:
-                self.is_jumping = False
+                self.state = "running"
             elif self.dy < 0 and self.offset.y == 0:
                 self.dy = 1
-
             self.offset += Offset(0, self.dy)
 
-    def watch_is_jumping(self) -> None:
-        if self.is_jumping:
+    def watch_state(self) -> None:
+        self.animation_index = 0
+        sprite_index = self.animations[self.state][self.animation_index]
+        self.sprite = DINO_SPRITES[sprite_index]
+
+        if self.state == "jumping":
             self.dy = -1
         else:
             self.dy = 0
@@ -176,8 +215,8 @@ class DinosaurGame(App):
         # Player controls
         dino = self.query_one(Dino)
         if self.key in ("up", "space"):
-            if not dino.is_jumping:
-                dino.is_jumping = True
+            if not dino.state == "jumping":
+                dino.state = "jumping"
 
         dino.update()
 
